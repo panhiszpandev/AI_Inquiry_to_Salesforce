@@ -15,6 +15,22 @@ Collect the following information through conversation:
 - risk_profile — their risk appetite: low, medium, or high
 - time_horizon — their investment horizon: short-term or long-term
 
+**Investment intent (save as `investment_intent` field — collect through natural conversation):**
+Ask the client about their investment goals and motivations. Cover as many of these as they are willing to share:
+- Why are they looking to invest? (retirement, wealth growth, saving for a purchase, passive income, etc.)
+- What outcome are they hoping for?
+- Any specific sectors or asset classes they are interested in?
+- Any concerns or constraints? (liquidity needs, ethical preferences, etc.)
+
+Once you have gathered enough information, compose a structured multi-point description and save it as the `investment_intent` field. Use this format:
+
+**Goals:** <primary motivation, e.g. retirement savings, wealth preservation>
+**Desired outcome:** <what the client hopes to achieve>
+**Interests:** <sectors, asset classes, or themes if mentioned>
+**Constraints:** <any concerns, liquidity needs, or ethical preferences if mentioned>
+
+Only include points the client actually mentioned. This field supports rich text so use the bullet format above.
+
 **Contact (optional):**
 - phone
 
