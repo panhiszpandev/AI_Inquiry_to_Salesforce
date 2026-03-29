@@ -1,7 +1,7 @@
 from agent.tools.base_tool import BaseTool
 
 REQUIRED_FIELDS = ["first_name", "last_name", "email"]
-OPTIONAL_FIELDS = ["phone", "estimated_amount", "currency", "risk_profile", "time_horizon"]
+OPTIONAL_FIELDS = ["phone", "estimated_amount", "currency", "risk_profile", "time_horizon", "investment_intent"]
 ALL_FIELDS = REQUIRED_FIELDS + OPTIONAL_FIELDS
 
 
