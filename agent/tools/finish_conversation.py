@@ -3,7 +3,7 @@ from shared.inquiry_event import InquiryEvent, CustomerProfile, InvestmentProfil
 from shared.kafka_producer import KafkaProducer
 
 REQUIRED_FIELDS = ["first_name", "last_name", "email"]
-OPTIONAL_INVESTMENT_FIELDS = ["estimated_amount", "currency", "risk_profile", "time_horizon"]
+OPTIONAL_INVESTMENT_FIELDS = ["estimated_amount", "currency", "risk_profile", "time_horizon", "investment_intent"]
 
 
 def _compute_confidence(data: dict) -> float:
@@ -50,6 +50,7 @@ class FinishConversationTool(BaseTool):
                 currency=self.inquiry_data.get("currency"),
                 risk_profile=self.inquiry_data.get("risk_profile"),
                 time_horizon=self.inquiry_data.get("time_horizon"),
+                investment_intent=self.inquiry_data.get("investment_intent"),
             ),
             ai_insights=AiInsights(
                 intent="investment",
