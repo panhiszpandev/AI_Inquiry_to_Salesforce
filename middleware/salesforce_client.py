@@ -42,8 +42,10 @@ class SalesforceClient:
             payload["Risk_Profile__c"] = ip.risk_profile.capitalize()
         if ip.estimated_amount:
             payload["Estimated_Investment__c"] = ip.estimated_amount
-        if ai.intent:
-            payload["Investment_Intent__c"] = ai.intent
+        if ip.time_horizon:
+            payload["Time_Horizon__c"] = ip.time_horizon.replace("-", "-").title()
+        if ip.investment_intent:
+            payload["Investment_Intent__c"] = ip.investment_intent
 
         resp = httpx.post(
             f"{SALESFORCE_INSTANCE_URL}/services/data/v59.0/sobjects/Lead",
