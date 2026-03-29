@@ -157,6 +157,10 @@ finish_conversation()   ──► publishes InquiryEvent to Kafka
 └─────────────────────────────────────────────────────────────┘
 ```
 
+**Screenshot — Lead record in Salesforce CRM:**
+
+![Salesforce Lead record](assets/Salesforce%20001.png)
+
 ---
 
 ## How it works — step by step
