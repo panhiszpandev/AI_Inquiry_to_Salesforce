@@ -19,6 +19,7 @@ class InvestmentProfile:
     currency: Optional[str] = None
     risk_profile: Optional[str] = None   # low / medium / high
     time_horizon: Optional[str] = None   # short-term / long-term
+    investment_intent: Optional[str] = None
 
 
 @dataclass
