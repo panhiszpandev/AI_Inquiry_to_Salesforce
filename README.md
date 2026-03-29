@@ -412,3 +412,128 @@ The Lead will appear in Salesforce under **Leads** with all custom fields popula
 | HTTP client | httpx |
 | CRM | Salesforce (REST API v59.0) |
 | Auth | OAuth 2.0 Client Credentials Flow |
+
+---
+
+## This is a demo
+
+This project is a **proof-of-concept** demonstrating how an AI conversational agent, an event bus, and a CRM can be wired together. It is intentionally kept simple to make the data flow easy to follow.
+
+It is **not production-ready**. The sections below describe what would need to change before this could handle real client data.
+
+---
+
+## Road to production
+
+### 🔴 Critical — must fix before handling real data
+
+**1. PII anonymization and GDPR compliance**
+
+The current implementation sends full personal data (name, email, phone) through Kafka in plain JSON and stores it directly in Salesforce without any access controls. Before going live:
+
+- **Pseudonymize** PII at the producer boundary — replace identifying fields with a UUID, store the mapping in a separate encrypted vault (e.g. HashiCorp Vault, AWS Secrets Manager). Only the vault key travels through Kafka.
+- **Encrypt Kafka topics at rest and in transit** — enable TLS between producer/consumer and the broker; use Kafka topic-level encryption for sensitive fields.
+- **Implement a data retention policy** — define how long `InquiryEvent` records are kept in Kafka and in Salesforce; wire up automatic deletion to honor right-to-erasure requests.
+- **Consent tracking** — the agent must obtain explicit consent before collecting any personal data and record the consent timestamp as part of the event.
+- **Audit log** — every access to PII (Kafka read, Salesforce API call) must be logged with actor, timestamp, and purpose.
+
+**2. Secrets management**
+
+Credentials currently live in a `.env` file on disk. In production:
+
+- Use a secrets manager (AWS Secrets Manager, GCP Secret Manager, HashiCorp Vault) — never store secrets in files or environment variables on shared machines.
+- Rotate Salesforce client credentials automatically.
+- Restrict the Salesforce integration user to the minimum required permissions (create Lead only, no read/delete).
+
+**3. Kafka security**
+
+The local Docker setup uses no authentication. Production Kafka needs:
+
+- SASL/SCRAM or mTLS authentication between all clients and the broker.
+- ACLs per topic — the agent can only produce, the middleware can only consume.
+- A managed broker (Confluent Cloud, Amazon MSK, Aiven) instead of a single-node Docker container.
+
+---
+
+### 🟡 Reliability — needed for a stable service
+
+**4. Dead letter queue (DLQ)**
+
+If the middleware fails to create a Lead in Salesforce (network error, validation failure, rate limit), the event is currently lost. A DLQ topic (`investment.inquiry.failed`) should capture failed events for manual review and reprocessing.
+
+**5. Idempotency**
+
+The middleware has no duplicate detection — if a message is redelivered (Kafka at-least-once), a duplicate Lead is created. The `event_id` should be used as an idempotency key; check for an existing Lead before inserting.
+
+**6. Salesforce API rate limiting and retry**
+
+The Salesforce REST API enforces per-org API limits. The middleware needs:
+
+- Exponential backoff with jitter on `429` / `503` responses.
+- A circuit breaker to stop hammering Salesforce during an outage.
+- Metrics on API call volume to stay within org limits.
+
+**7. Token refresh**
+
+The current `SalesforceClient` authenticates once at startup and reuses the token indefinitely. Access tokens expire (typically 2 hours). The client needs proactive refresh or re-authentication on `401`.
+
+---
+
+### 🟡 Data quality — needed for clean CRM data
+
+**8. Input validation**
+
+The agent accepts whatever the user types. Before publishing the event:
+
+- Validate email format (regex or a library like `email-validator`).
+- Normalize phone numbers to E.164 format.
+- Validate `estimated_amount` is a positive number within a reasonable range.
+- Sanitize free-text fields to prevent injection into Salesforce formula fields.
+
+**9. Duplicate Lead detection**
+
+If the same email submits two inquiries, two Leads are created. The middleware should query Salesforce for an existing Lead by email before creating a new one, and either update it or link the event to the existing record.
+
+---
+
+### 🟢 Observability and operations
+
+**10. Structured logging and tracing**
+
+Replace `print()` with structured logs (e.g. `structlog` or `python-json-logger`). Attach `event_id` and `trace_id` to every log line so a single inquiry can be traced across agent → Kafka → middleware → Salesforce.
+
+**11. Metrics and alerting**
+
+Instrument with Prometheus or OpenTelemetry:
+
+- Kafka consumer lag (is the middleware keeping up?)
+- Salesforce Lead creation latency and error rate
+- Agent conversation completion rate vs. abandonment rate
+
+Set alerts on consumer lag > threshold and Salesforce error rate > 1%.
+
+**12. Health checks and graceful shutdown**
+
+The middleware has no `/health` endpoint and no graceful shutdown — killing the process mid-message can leave a Lead partially created. Add:
+
+- A health check endpoint (or readiness probe for Kubernetes).
+- Signal handling (`SIGTERM`) to finish the current message before exiting.
+
+---
+
+### 🟢 Agent improvements
+
+**13. Human-in-the-loop review**
+
+High-value inquiries (e.g. `estimated_amount > 500 000`) should be flagged for manual review before a Lead is created, rather than submitted automatically.
+
+**14. Conversation persistence**
+
+The agent currently holds the full conversation in memory. A page refresh or restart loses all context. Conversations should be persisted to a database (Redis or PostgreSQL) keyed by session ID so they can be resumed.
+
+**15. Guardrails and jailbreak prevention**
+
+The agent has no content filtering. A production deployment needs:
+
+- A system-level guardrail to prevent the LLM from being manipulated into disclosing other clients' data or bypassing the data collection flow.
+- Rate limiting per IP / session to prevent abuse.
