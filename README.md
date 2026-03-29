@@ -42,6 +42,123 @@ An end-to-end demo of AI-powered investment inquiry capture. A CLI conversationa
 
 ---
 
+## Example conversation
+
+> The agent conducts a natural dialogue, saves each field behind the scenes, and submits the inquiry automatically when ready.
+
+```
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                      AI Investment Advisory — CLI                           ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+  Agent  │ Hello! I'm here to help connect you with our investment advisory
+         │ team. Could I start with your name?
+
+  You    │ Sure, I'm Anna Kowalska.
+
+  Agent  │ Nice to meet you, Anna! What brings you to us today — are you
+         │ looking to grow your savings, plan for retirement, or something else?
+
+  You    │ Mainly retirement. I'd also like some passive income on the side.
+         │ I've been thinking about dividend stocks and maybe some bonds.
+
+  Agent  │ That's a great starting point. How much are you looking to invest,
+         │ and in which currency?
+
+  You    │ Around 50 000 CHF.
+
+  Agent  │ Understood. How would you describe your appetite for risk —
+         │ low, medium, or high?
+
+  You    │ I'd say medium. I don't want to lose sleep over it, but I'm open
+         │ to some growth.
+
+  Agent  │ And what's your investment horizon — are you thinking short-term
+         │ (under 3 years) or long-term?
+
+  You    │ Definitely long-term. At least 15–20 years.
+
+  Agent  │ Do you have any constraints I should note — liquidity needs,
+         │ ethical preferences, anything like that?
+
+  You    │ I'd prefer to avoid companies with poor ESG ratings if possible.
+
+  Agent  │ Got it. Could I get your email address so an advisor can follow up?
+
+  You    │ anna.kowalska@example.com
+
+  Agent  │ And optionally, a phone number?
+
+  You    │ +48 600 123 456
+
+  Agent  │ Perfect, let me confirm the details before I submit:
+         │
+         │   Name          Anna Kowalska
+         │   Email         anna.kowalska@example.com
+         │   Phone         +48 600 123 456
+         │   Amount        50 000 CHF
+         │   Risk profile  Medium
+         │   Horizon       Long-term
+         │   Goals         Retirement savings and passive income via dividend
+         │                 stocks and bonds, with a preference for ESG-aligned
+         │                 companies.
+         │
+         │ Shall I go ahead and submit?
+
+  You    │ Yes, please.
+
+  Agent  │ Your inquiry has been submitted successfully! One of our advisors
+         │ will be in touch with you shortly. Thank you, Anna!
+
+╚══════════════════════════════════════════════════════════════════════════════╝
+```
+
+**What happened behind the scenes:**
+
+```
+save_field(first_name, "Anna")
+save_field(last_name, "Kowalska")
+save_field(investment_intent, "**Goals:** Retirement savings and passive income
+                               **Interests:** Dividend stocks, bonds
+                               **Constraints:** Prefers ESG-aligned companies")
+save_field(estimated_amount, "50000")
+save_field(currency, "CHF")
+save_field(risk_profile, "medium")
+save_field(time_horizon, "long-term")
+save_field(email, "anna.kowalska@example.com")
+save_field(phone, "+48 600 123 456")
+finish_conversation()   ──► publishes InquiryEvent to Kafka
+                        ──► middleware creates Lead in Salesforce  ✓
+```
+
+**Resulting Salesforce Lead:**
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  Lead: Anna Kowalska                                        │
+├──────────────────────────┬──────────────────────────────────┤
+│ Email                    │ anna.kowalska@example.com        │
+│ Phone                    │ +48 600 123 456                  │
+│ Company                  │ Individual                       │
+│ Risk_Profile__c          │ Medium                           │
+│ Estimated_Investment__c  │ 50000.00                         │
+│ Time_Horizon__c          │ Long-Term                        │
+│ Investment_Intent__c     │ **Goals:** Retirement savings    │
+│                          │ and passive income               │
+│                          │ **Interests:** Dividend stocks,  │
+│                          │ bonds                            │
+│                          │ **Constraints:** Prefers ESG     │
+│                          │ companies                        │
+│ Description              │ Investment amount: 50000.0 CHF.  │
+│                          │ Risk profile: medium.            │
+│                          │ Time horizon: long-term.         │
+├──────────────────────────┴──────────────────────────────────┤
+│  AI confidence score: 0.94  │  source: ai-chatbot           │
+└─────────────────────────────────────────────────────────────┘
+```
+
+---
+
 ## How it works — step by step
 
 ### 1. Agent conversation (CLI)
